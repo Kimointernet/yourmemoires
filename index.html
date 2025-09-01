@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>دفتر يومياتي</title>
+<style>
+  body { font-family: sans-serif; margin:0; padding:0; background:#f0f0f0; }
+  #lockScreen, #app { display:none; height:100vh; align-items:center; justify-content:center; }
+  #lockScreen { background:#222; color:#fff; flex-direction:column; }
+  #lockScreen input { padding:10px; font-size:18px; margin:10px; }
+  #app { flex-direction:column; }
+  header { background:#333; color:#fff; padding:10px; display:flex; justify-content:space-between; align-items:center; }
+  header button { margin-left:5px; }
+  #editor { flex:1; padding:10px; background:#fff; margin:10px; border-radius:8px; overflow:auto; min-height:200px; }
+  #editor[contenteditable="true"] { outline:none; }
+  footer { padding:10px; display:flex; gap:5px; flex-wrap:wrap; }
+  button { padding:5px 10px; border:none; border-radius:5px; cursor:pointer; }
+  .dark { background:#111; color:#ddd; }
+  .dark header { background:#000; }
+  .dark #editor { background:#222; color:#eee; }
+</style>
+</head>
+<body>
+
+<!-- شاشة القفل -->
+<div id="lockScreen">
+  <h2>أدخل الرمز للدخول</h2>
+  <input type="password" id="pinInput" placeholder="رمز الدخول">
+  <button onclick="unlock()">دخول</button>
+</div>
+
+<!-- التطبيق -->
+<div id="app">
+  <header>
+    <span>📓 دفتر يومياتي</span>
+    <div>
+      <button onclick="toggleTheme()">🌙/☀️</button>
+      <button onclick="exportData()">💾 تصدير</button>
+      <input type="file" id="importFile" onchange="importData(event)" style="display:none">
+      <button onclick="document.getElementById('importFile').click()">📂 استعادة</button>
+      <button onclick="lock()">🔒 قفل</button>
+    </div>
+  </header>
+  
+  <!-- أزرار التنسيق -->
+  <footer>
+    <button onclick="format('bold')">B</button>
+    <button onclick="format('italic')">I</button>
+    <button onclick="format('underline')">U</button>
+    <button onclick="format('insertUnorderedList')">• قائمة</button>
+    <button onclick="format('justifyCenter')">وسط</button>
+    <button onclick="format('insertImage', prompt('أدخل رابط الصورة:'))">🖼</button>
+    <button onclick="insertDate()">📅 تاريخ</button>
+    <input type="text" id="tagInput" placeholder="أضف وسم #">
+    <button onclick="saveEntry()">حفظ</button>
+  </footer>
+  
+  <!-- مساحة الكتابة -->
+  <div id="editor" contenteditable="true"></div>
+  
+  <!-- البحث -->
+  <div style="padding:10px;">
+    <input type="text" id="searchInput" placeholder="بحث...">
+    <button onclick="searchEntries()">🔍 بحث</button>
+    <div id="results"></div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = "myJournal";
+let isDark = false;
+
+// شاشة القفل
+document.getElementById("lockScreen").style.display = "flex";
+function unlock(){
+  const pin = document.getElementById("pinInput").value;
+  if(pin === "1234"){ // يمكن تغييره
+    document.getElementById("lockScreen").style.display="none";
+    document.getElementById("app").style.display="flex";
+    loadLastEntry();
+  } else { alert("رمز خاطئ!"); }
+}
+function lock(){
+  saveEntry();
+  document.getElementById("app").style.display="none";
+  document.getElementById("lockScreen").style.display="flex";
+}
+
+// تنسيق النص
+function format(cmd, val=null){ document.execCommand(cmd,false,val); }
+function insertDate(){ format("insertText", new Date().toLocaleString()); }
+
+// الحفظ
+function saveEntry(){
+  const content = document.getElementById("editor").innerHTML;
+  const tag = document.getElementById("tagInput").value;
+  let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  data.push({content, tag, date:new Date().toLocaleString()});
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  alert("تم الحفظ ✅");
+}
+function loadLastEntry(){
+  let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  if(data.length>0){ document.getElementById("editor").innerHTML = data[data.length-1].content; }
+}
+
+// البحث
+function searchEntries(){
+  const q = document.getElementById("searchInput").value.toLowerCase();
+  let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  let res = data.filter(e => e.content.toLowerCase().includes(q) || (e.tag && e.tag.includes(q)));
+  document.getElementById("results").innerHTML = res.map(r=>"<div><b>"+r.date+"</b>: "+(r.tag||"")+"</div>").join("");
+}
+
+// تبديل الوضع الليلي
+function toggleTheme(){
+  isDark = !isDark;
+  document.body.classList.toggle("dark", isDark);
+}
+
+// تصدير/استعادة
+function exportData(){
+  const data = localStorage.getItem(STORAGE_KEY) || "[]";
+  const blob = new Blob([data], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "journal.json";
+  a.click();
+}
+function importData(e){
+  const file = e.target.files[0];
+  const reader = new FileReader();
+  reader.onload = () => { localStorage.setItem(STORAGE_KEY, reader.result); alert("تم الاستعادة ✅"); };
+  reader.readAsText(file);
+}
+</script>
+
+</body>
+</html>
