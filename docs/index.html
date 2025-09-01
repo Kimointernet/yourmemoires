@@ -75,7 +75,7 @@ let isDark = false;
 document.getElementById("lockScreen").style.display = "flex";
 function unlock(){
   const pin = document.getElementById("pinInput").value;
-  if(pin === "1234"){ // يمكن تغييره
+  if(pin === "12@12"){ // يمكن تغييره
     document.getElementById("lockScreen").style.display="none";
     document.getElementById("app").style.display="flex";
     loadLastEntry();
@@ -137,4 +137,5 @@ function importData(e){
 </script>
 
 </body>
+
 </html>
